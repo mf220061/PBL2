@@ -3,7 +3,6 @@ import os
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for, send_from_directory
 )
-#from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 import subprocess
@@ -11,15 +10,28 @@ import subprocess
 from auth import login_required
 from db import get_db
 
-#bp = Blueprint('auth', __name__, url_prefix='/auth')
 bp = Blueprint('compiler', __name__)
-#bp = Blueprint('compiler', __name__, url_prefix='/compiler')
 
 ALLOWED_EXTENSIONS = {'tex', 'png'}
 UPLOAD_FOLDER = '/app/files/'
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@bp.route('/template_sample')
+def template_sample():
+    connection = get_db()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT t.id, created, name, author_id, stars, num, username"
+        " FROM template t JOIN rireki r ON t.tex_id = r.id JOIN user u ON r.author_id = u.id"
+        " ORDER BY r.created DESC"
+    )
+    posts = cursor.fetchall()
+    #posts
+    #[{'id': 16, 'created': datetime.datetime(2022, 8, 11, 12, 40, 28), 'name': 'semi078', 'author_id': 1, 'stars': 0, 'num': '5673316911369133891', 'username': 'oda'}]
+    cursor.close()
+    return render_template('compiler/template_sample.html', posts=posts)
 
 @bp.route('/')
 def template():
@@ -34,7 +46,6 @@ def template():
     #posts
     #[{'id': 16, 'created': datetime.datetime(2022, 8, 11, 12, 40, 28), 'name': 'semi078', 'author_id': 1, 'stars': 0, 'num': '5673316911369133891', 'username': 'oda'}]
     cursor.close()
-    #connection.close()
     return render_template('compiler/template.html', posts=posts)
 
 @bp.route('/<int:id>/register')
@@ -67,7 +78,6 @@ def index():
     )
     posts = cursor.fetchall()
     cursor.close()
-    #connection.close()
     return render_template('compiler/index.html', posts=posts)
 
 def get_post(id, check_author=True):
@@ -80,7 +90,6 @@ def get_post(id, check_author=True):
     )
     post = cursor.fetchone()
     cursor.close()
-    #connection.close()
 
     if post is None:
         abort(404, f"Post id {id} doesn't exist.")
@@ -102,7 +111,6 @@ def uploads(num, name):
     dire = UPLOAD_FOLDER + num
     return send_from_directory(dire, name)
 
-#@bp.route('/register', methods=('GET', 'POST'))
 @bp.route('/upload', methods=('GET', 'POST'))
 def upload():
     if request.method == 'POST':
@@ -137,11 +145,9 @@ def upload():
 
             command = "mkdir -p {0} && cp {2}{1}.tex {0} && cd {0} && platex {1} && dvipdfmx {1}".format(dire, name, UPLOAD_FOLDER)
             subprocess.run(command, shell=True)
-            #return redirect(url_for('compiler.uploaded_file', filename=filename))
 
             # 後の処理（ここは後で変えようと思う）
             compiled_name = name + ".pdf"
-            #return redirect(url_for('compiler.compiled_file', compiled_name=compiled_name))
 
             cursor.execute(
                 "INSERT INTO rireki (dir_path, tex, num, name, author_id)"
@@ -151,8 +157,6 @@ def upload():
             )
             connection.commit()
             cursor.close()
-            #connection.close()
             return redirect(url_for('compiler.index'))
 
-    #return render_template('auth/register.html')
     return render_template('compiler/upload.html')
