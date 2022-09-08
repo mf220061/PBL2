@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Compiler{% endblock %}</h1>
+  {% if g.user %}
+    <a class="action" href="{{ url_for('compiler.index') }}">History</a>
+    <a class="action" href="{{ url_for('compiler.template') }}">Template</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <form method="post" enctype=multipart/form-data>
+    <input type=file name=file>
+    <input type=submit value=Upload>
+  </form>
+{% endblock %}

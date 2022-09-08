@@ -1,0 +1,32 @@
+FROM ubuntu:focal AS installer
+RUN apt-get update && apt-get install -y \
+    apt-utils \
+    perl \
+    wget \
+ && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /usr/src/latex \
+ && wget http://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz \
+ && tar -zxvf install-tl-unx.tar.gz -C /usr/src/latex
+RUN echo I | /usr/src/latex/install-tl-202*/install-tl -no-gui -repository http://mirror.ctan.org/systems/texlive/tlnet/
+
+FROM ubuntu:focal
+RUN mkdir -p /usr/local/texlive
+ENV DEBIAN_FRONTEND=noninteractive
+COPY --from=installer /usr/local/texlive /usr/local/texlive
+RUN mkdir /app
+COPY ./requirements.txt /app
+WORKDIR /app
+RUN apt-get update && apt-get install -y \
+    apt-utils \
+    build-essential \
+    gcc \
+    libffi-dev \
+    perl \
+    python3.9 \
+    python3.9-dev \
+    python3-pip \
+ && rm -rf /var/lib/apt/lists/* \
+ && pip install --upgrade pip \
+ && pip install wheel \
+ && pip install -r requirements.txt
+RUN /usr/local/texlive/*/bin/x86_64-linux/tlmgr path add

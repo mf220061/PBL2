@@ -1,0 +1,44 @@
+version: "3"
+services:
+  flask_app:
+    container_name: pbl-flask_app
+    image: mf220061/flask_and_compiler:0.3
+    links:
+      - db
+    volumes:
+      - ./flask_app:/app
+      - ./flask_app/files:/app/files
+      - socket:/tmp
+    command: /bin/bash -c "uwsgi --ini /app/app.ini"
+
+  web:
+    container_name: pbl-web
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./web/nginx.conf:/etc/nginx/conf.d/default.conf
+      - socket:/tmp
+
+  db:
+    container_name: pbl-db
+    image: mysql:8.0.21
+    command: --default-authentication-plugin=caching_sha2_password
+    ports:
+      - "32000:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - ./db/data:/var/lib/mysql
+      - ./db/logs:/var/log/mysql
+
+  adminer:
+    container_name: pbl-adminer
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+
+volumes:
+  socket:
